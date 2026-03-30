@@ -16,7 +16,9 @@
         body: formData
       });
 
-      if (!res.ok) throw new Error(`Server error: ${res.status}`);
+      if (!res.ok) {
+        throw new Error(`Server error: ${res.status}`);
+      }
 
       const blob = await res.blob();
       spectrogramUrl = URL.createObjectURL(blob);
@@ -29,11 +31,8 @@
   }
 </script>
 
-<main class="p-8 font-sans">
-  <h1 class="text-2xl font-bold mb-4">Audio Spectrogram Demo</h1>
-
-  <input type="file" accept=".wav" on:change="{(e) => file = e.target.files?.[0] ?? null}" class="mb-4" />
-
+<div class="p-4 space-y-4">
+  <input type="file" accept=".wav" on:change="{(e) => file = e.target.files?.[0] ?? null}" />
   <button
     on:click="{uploadFile}"
     class="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
@@ -45,7 +44,7 @@
   {#if spectrogramUrl}
     <div class="mt-4">
       <h2 class="text-lg font-bold mb-2">Spectrogram</h2>
-      <img src={spectrogramUrl} alt="Spectrogram" class="border max-w-xl" />
+      <img src={spectrogramUrl} alt="Spectrogram" class="border" />
     </div>
   {/if}
-</main>
+</div>
