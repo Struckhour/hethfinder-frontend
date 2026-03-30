@@ -45,7 +45,7 @@
   {#if spectrogramUrl}
     <div class="mt-4">
       <h2 class="text-lg font-bold mb-2">Spectrogram</h2>
-      <img src={spectrogramUrl} alt="Spectrogram" class="border max-w-xl" />
+      <img src={spectrogramUrl} alt="Spectrogram" class="border border-blue object-cover w-full" />
     </div>
   {/if}
 </main>
