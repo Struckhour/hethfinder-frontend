@@ -1,7 +1,15 @@
 <script lang="ts">
+  
+  import leftBorder from './assets/images/left-side-bg.png';
+  import rightBorder from './assets/images/right-side-bg.png';
+  import backWhite from './assets/images/background-white.png';
+
+
   let file: File | null = null;
   let spectrogramUrl: string | null = null;
   let loading = false;
+
+
 
   async function uploadFile() {
     if (!file) return;
@@ -29,30 +37,50 @@
   }
 </script>
 
-<main class="p-8 font-sans">
-  <div class="w-full text-center">
-    <div class="my-4">
-      <h1 class="text-6xl font-bold mb-1 tracking-widest" style="font-family: 'Alumni Sans Pinstripe', sans-serif;">HethFinder</h1>
-      <h4>A tool for analyzing Hermit Thrush recordings</h4>
+<main
+  class="p-8 font-sans flex h-screen justify-center bg-no-repeat bg-center bg-cover"
+  style="background-image: url('{backWhite}');"
+  >
+  <div class="grid grid-cols-[minmax(50px,auto)_1fr_minmax(50px,auto)] items-start gap-4 max-w-[1000px] max-auto">
+    
+    <!-- Left border image -->
+    <div>
+      <img src={leftBorder} alt="Left border" class="h-full object-contain max-h-screen" />
     </div>
-    <div class="w-full flex flex-col">
 
-      <input type="file" accept=".wav" on:change="{(e) => file = e.target.files?.[0] ?? null}" class="mb-4 mx-auto border border-red-500" />
-      
-      <button
+    <!-- Main content -->
+    <div
+      class="text-center"
+    >
+      <div class="my-4">
+        <h1 class="text-6xl font-bold mb-1 tracking-widest" style="font-family: 'Alumni Sans Pinstripe', sans-serif;">HethFinder</h1>
+        <h4>A tool for analyzing Hermit Thrush recordings</h4>
+      </div>
+
+      <div class="w-full flex flex-col">
+        <input type="file" accept=".wav" on:change="{(e) => file = e.target.files?.[0] ?? null}" class="mb-4 mx-auto border border-red-500" />
+        
+        <button
           on:click="{uploadFile}"
           class="block px-4 py-2 bg-blue-950 hover:bg-blue-900 max-w-xl mx-auto text-white rounded-xl disabled:opacity-50"
           disabled={loading || !file}
         >
           {loading ? "Generating..." : "Upload & Generate Spectrogram"}
-      </button>
-    
-  </div>
-    {#if spectrogramUrl}
-    <div class="mt-4">
-      <h2 class="text-lg font-bold mb-2">Spectrogram</h2>
-      <img src={spectrogramUrl} alt="Spectrogram" class="border border-blue object-cover w-full" />
+        </button>
+      </div>
+
+      {#if spectrogramUrl}
+      <div class="mt-4">
+        <h2 class="text-lg font-bold mb-2">Spectrogram</h2>
+        <img src={spectrogramUrl} alt="Spectrogram" class="border border-blue object-cover w-full" />
+      </div>
+      {/if}
     </div>
-    {/if}
+
+    <!-- Right border image -->
+    <div>
+      <img src={rightBorder} alt="Right border" class="h-full object-contain max-h-screen" />
+    </div>
+
   </div>
 </main>
