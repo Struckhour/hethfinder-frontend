@@ -30,22 +30,29 @@
 </script>
 
 <main class="p-8 font-sans">
-  <h1 class="text-2xl font-bold mb-4">Audio Spectrogram Demo</h1>
+  <div class="w-full text-center">
+    <div class="my-4">
+      <h1 class="text-6xl font-bold mb-1 tracking-widest" style="font-family: 'Alumni Sans Pinstripe', sans-serif;">HethFinder</h1>
+      <h4>A tool for analyzing Hermit Thrush recordings</h4>
+    </div>
+    <div class="w-full flex flex-col">
 
-  <input type="file" accept=".wav" on:change="{(e) => file = e.target.files?.[0] ?? null}" class="mb-4" />
-
-  <button
-    on:click="{uploadFile}"
-    class="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
-    disabled={loading || !file}
-  >
-    {loading ? "Generating..." : "Upload & Generate Spectrogram"}
-  </button>
-
-  {#if spectrogramUrl}
+      <input type="file" accept=".wav" on:change="{(e) => file = e.target.files?.[0] ?? null}" class="mb-4 mx-auto border border-red-500" />
+      
+      <button
+          on:click="{uploadFile}"
+          class="block px-4 py-2 bg-blue-950 hover:bg-blue-900 max-w-xl mx-auto text-white rounded-xl disabled:opacity-50"
+          disabled={loading || !file}
+        >
+          {loading ? "Generating..." : "Upload & Generate Spectrogram"}
+      </button>
+    
+  </div>
+    {#if spectrogramUrl}
     <div class="mt-4">
       <h2 class="text-lg font-bold mb-2">Spectrogram</h2>
       <img src={spectrogramUrl} alt="Spectrogram" class="border border-blue object-cover w-full" />
     </div>
-  {/if}
+    {/if}
+  </div>
 </main>
