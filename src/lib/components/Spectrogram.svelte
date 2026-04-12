@@ -32,7 +32,11 @@
 </script>
 
 <div class="p-4 space-y-4">
-  <input type="file" accept=".wav" on:change="{(e) => file = e.target.files?.[0] ?? null}" />
+  <input type="file" accept=".wav" on:change="{(e) => {
+      const input = e.currentTarget as HTMLInputElement;
+      file = input.files?.[0] ?? null;
+    }}" 
+  />
   <button
     on:click="{uploadFile}"
     class="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"

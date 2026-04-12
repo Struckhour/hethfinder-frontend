@@ -55,12 +55,14 @@
         <h4>A tool for analyzing Hermit Thrush recordings</h4>
       </div>
 
-      <div class="w-full flex flex-col">
+      <div class="w-full flex flex-col items-center space-y-4">
         <input
           type="file"
           accept=".wav"
-          on:change="{(e) => file = e.target.files?.[0] ?? null}"
-          class="mb-4 mx-auto border border-red-500"
+          on:change={(e) => {
+            const input = e.currentTarget as HTMLInputElement;
+            file = input.files?.[0] ?? null;
+          }}
         />
         
         <button
@@ -68,7 +70,7 @@
           class="block px-4 py-2 bg-blue-950 hover:bg-blue-900 max-w-xl mx-auto text-white rounded-xl disabled:opacity-50"
           disabled={loading || !file}
         >
-          {loading ? "Generating..." : "Upload & Generate Spectrogram"}
+          {loading ? "Generating..." : "Generate Spectrogram"}
         </button>
       </div>
 
