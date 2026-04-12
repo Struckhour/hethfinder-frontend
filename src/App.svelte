@@ -8,7 +8,8 @@
   let file: File | null = null;
   let spectrogramUrl: string | null = null;
   let loading = false;
-
+  let modelStatus = '';
+  let detections: number[] = [];
 
 
   async function uploadFile() {
@@ -40,6 +41,8 @@
     if (!file) return;
 
     loading = true;
+    modelStatus = 'Uploading file...';
+    detections = [];
 
     const formData = new FormData();
     formData.append("file", file);
@@ -50,11 +53,36 @@
         body: formData
       });
 
-      const json = await res.json();
-      console.log(json);
-      alert(`Detected ${json.detections.length} events`);
+      if (!res.ok) throw new Error(`Server error: ${res.status}`);
+
+      const { job_id } = await res.json();
+
+      let status = 'queued';
+
+      while (status !== 'done') {
+        await new Promise((r) => setTimeout(r, 2000));
+
+        const statusRes = await fetch(`http://127.0.0.1:8000/status/${job_id}`);
+        if (!statusRes.ok) throw new Error(`Status error: ${statusRes.status}`);
+
+        const statusJson = await statusRes.json();
+        status = statusJson.status;
+        modelStatus = `Model status: ${status}`;
+
+        if (status === 'error') {
+          throw new Error(statusJson.error || 'Job failed');
+        }
+      }
+
+      const resultRes = await fetch(`http://127.0.0.1:8000/result/${job_id}`);
+      if (!resultRes.ok) throw new Error(`Result error: ${resultRes.status}`);
+
+      const resultJson = await resultRes.json();
+      detections = resultJson.detections ?? [];
+      modelStatus = `Done. Found ${detections.length} detections.`;
     } catch (err) {
       console.error(err);
+      modelStatus = 'Prediction failed.';
       alert("Prediction failed.");
     } finally {
       loading = false;
@@ -102,6 +130,19 @@
         <button on:click={runModel} class="bg-blue-500 hover:bg-blue-400 text-white font-bold py-2 px-4 rounded disabled:opacity-50" disabled={loading || !file}>
           Run Model
         </button>
+        {#if modelStatus}
+          <p class="text-sm mt-2">{modelStatus}</p>
+        {/if}
+        {#if detections.length > 0}
+          <div class="mt-4 w-full max-w-xl text-left">
+            <h3 class="font-bold mb-2">Detections ({detections.length})</h3>
+            <ul class="text-sm max-h-48 overflow-y-auto border p-3 rounded bg-white/70">
+              {#each detections as detection}
+                <li>{detection}</li>
+              {/each}
+            </ul>
+          </div>
+        {/if}
       </div>
 
 
