@@ -35,6 +35,33 @@
       loading = false;
     }
   }
+
+  async function runModel() {
+    if (!file) return;
+
+    loading = true;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("http://127.0.0.1:8000/predict", {
+        method: "POST",
+        body: formData
+      });
+
+      const json = await res.json();
+      console.log(json);
+      alert(`Detected ${json.detections.length} events`);
+    } catch (err) {
+      console.error(err);
+      alert("Prediction failed.");
+    } finally {
+      loading = false;
+    }
+  }
+
+
 </script>
 
 <main
@@ -71,6 +98,9 @@
           disabled={loading || !file}
         >
           {loading ? "Generating..." : "Generate Spectrogram"}
+        </button>
+        <button on:click={runModel} class="bg-blue-500 hover:bg-blue-400 text-white font-bold py-2 px-4 rounded disabled:opacity-50" disabled={loading || !file}>
+          Run Model
         </button>
       </div>
 
