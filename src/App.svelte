@@ -128,7 +128,7 @@
           {loading ? "Generating..." : "Generate Spectrogram"}
         </button>
         <button on:click={runModel} class="bg-blue-500 hover:bg-blue-400 text-white font-bold py-2 px-4 rounded disabled:opacity-50" disabled={loading || !file}>
-          Run Model
+          Find Songs
         </button>
         {#if modelStatus}
           <p class="text-sm mt-2">{modelStatus}</p>
