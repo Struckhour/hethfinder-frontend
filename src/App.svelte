@@ -10,6 +10,47 @@
   let loading = false;
   let modelStatus = '';
   let detections: number[] = [];
+  $: timeTicks = niceTimeTicks(durationSec);
+  $: freqTicks = niceFreqTicks(minFreq, maxFreq);
+
+  export let durationSec: number = 60;   // TEMP: replace later with real value
+  export let sampleRate: number = 22050; // TEMP: replace later
+
+  const nFft = 2048;
+  const freqBinStart = 120;
+  const freqBinEnd = 742;
+
+  const minFreq = (freqBinStart * sampleRate) / nFft;
+  const maxFreq = (freqBinEnd * sampleRate) / nFft;
+
+  let pixelsPerSecond = 40; // default zoom
+  $: trackWidth = Math.max(durationSec * pixelsPerSecond, 800);
+
+
+  function formatTime(sec: number): string {
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    return `${m}:${String(s).padStart(2, "0")}`;
+  }
+
+  function niceTimeTicks(duration: number): number[] {
+    if (duration <= 30) return Array.from({ length: Math.floor(duration / 5) + 1 }, (_, i) => i * 5);
+    if (duration <= 120) return Array.from({ length: Math.floor(duration / 10) + 1 }, (_, i) => i * 10);
+    if (duration <= 600) return Array.from({ length: Math.floor(duration / 30) + 1 }, (_, i) => i * 30);
+    return Array.from({ length: Math.floor(duration / 60) + 1 }, (_, i) => i * 60);
+  }
+
+  function niceFreqTicks(minF: number, maxF: number): number[] {
+    const step = 1000;
+    const start = Math.ceil(minF / step) * step;
+    const ticks: number[] = [];
+    for (let f = start; f <= maxF; f += step) {
+      ticks.push(f);
+    }
+    return ticks;
+  }
+
+
 
 
   async function uploadFile() {
@@ -155,8 +196,55 @@
 
     {#if spectrogramUrl}
     <div class="my-4 py-4 col-span-1 md:col-span-3 w-full">
-      <h2 class="text-lg font-bold mb-2">{file ? file.name : "Spectrogram"}</h2>
-      <img src={spectrogramUrl} alt="Spectrogram" class="border-t-4 border-b-4 border-black object-cover w-full" />
+      <h2 class="text-lg font-bold mb-2">
+        {file ? file.name : "Spectrogram"}
+      </h2>
+
+      <div class="flex gap-2 items-stretch w-full">
+
+        <!-- Y AXIS -->
+        <div class="relative w-14 shrink-0 border-r border-gray-300">
+          {#each freqTicks as freq}
+            <div
+              class="absolute right-1 text-xs text-gray-700 -translate-y-1/2"
+              style={`top: ${100 - ((freq - minFreq) / (maxFreq - minFreq)) * 100}%;`}
+            >
+              {Math.round(freq / 1000)}k
+            </div>
+          {/each}
+        </div>
+
+        <!-- MAIN AREA -->
+        <div class="flex-1 min-w-0">
+          <div class="overflow-x-auto overflow-y-hidden">
+            <div style={`width: ${trackWidth}px;`}>
+
+              <!-- SPECTROGRAM -->
+              <div class="border-t-4 border-b-4 border-black bg-white">
+                <img
+                  src={spectrogramUrl}
+                  alt="Spectrogram"
+                  class="block max-w-none"
+                  style={`width: ${trackWidth}px; height: 450px;`}
+                />
+              </div>
+
+              <!-- X AXIS -->
+              <div class="relative h-8 mt-1 border-t border-gray-300">
+                {#each timeTicks as t}
+                  <div
+                    class="absolute text-xs text-gray-700 -translate-x-1/2 top-1 whitespace-nowrap"
+                    style={`left: ${(t / durationSec) * trackWidth}px;`}
+                  >
+                    {formatTime(t)}
+                  </div>
+                {/each}
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
     {/if}
   </div>
