@@ -134,7 +134,7 @@
 </script>
 
 <main
-  class="p-8 font-sans flex h-screen justify-center bg-no-repeat bg-center bg-cover"
+  class="p-8 font-sans flex flex-col items-center min-h-screen bg-no-repeat bg-center bg-cover"
   style="background-image: url('{backWhite}');"
 >
   <div class="grid grid-cols-1 md:grid-cols-[minmax(50px,auto)_1fr_minmax(50px,auto)] items-start gap-4 max-w-[1000px] mx-auto">
@@ -194,13 +194,15 @@
       <img src={rightBorder} alt="Right border" class="h-full object-contain max-h-screen" />
     </div>
 
-    {#if spectrogramUrl}
-    <div class="my-4 py-4 col-span-1 md:col-span-3 w-full">
+    
+  </div>
+  {#if spectrogramUrl}
+    <div class="my-4 py-4 w-full">
       <h2 class="text-lg font-bold mb-2">
         {file ? file.name : "Spectrogram"}
       </h2>
 
-      <div class="flex gap-2 items-stretch w-full">
+      <div class="flex m-2 items-stretch w-full">
 
         <!-- Y AXIS -->
         <div class="relative w-14 shrink-0 border-r border-gray-300">
@@ -247,5 +249,4 @@
       </div>
     </div>
     {/if}
-  </div>
 </main>
