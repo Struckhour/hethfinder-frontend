@@ -10,7 +10,7 @@
   let loading = false;
   let modelStatus = '';
   let detections: number[] = [];
-  $: timeTicks = niceTimeTicks(durationSec);
+  $: timeTicks = niceTimeTicks(safeDurationSec ?? 0, trackWidth);
   $: freqTicks = niceFreqTicks(minFreq, maxFreq);
 
   let durationSec: number = 60;   // TEMP: replace later with real value
@@ -39,11 +39,22 @@
     return `${m}:${String(s).padStart(2, "0")}`;
   }
 
-  function niceTimeTicks(duration: number): number[] {
-    if (duration <= 30) return Array.from({ length: Math.floor(duration / 5) + 1 }, (_, i) => i * 5);
-    if (duration <= 120) return Array.from({ length: Math.floor(duration / 10) + 1 }, (_, i) => i * 10);
-    if (duration <= 600) return Array.from({ length: Math.floor(duration / 30) + 1 }, (_, i) => i * 30);
-    return Array.from({ length: Math.floor(duration / 60) + 1 }, (_, i) => i * 60);
+  function niceTimeTicks(duration: number, width: number): number[] {
+    if (!Number.isFinite(duration) || duration <= 0) return [];
+
+    const targetPxSpacing = 120; // ideal spacing between labels
+    const secondsPerTick = duration / (width / targetPxSpacing);
+
+    // round to nice intervals
+    const niceSteps = [1, 2, 5, 10, 15, 30, 60, 120, 300];
+    const step = niceSteps.find(s => s >= secondsPerTick) ?? 600;
+
+    const ticks: number[] = [];
+    for (let t = 0; t <= duration; t += step) {
+      ticks.push(t);
+    }
+
+    return ticks;
   }
 
   function niceFreqTicks(minF: number, maxF: number): number[] {
@@ -252,35 +263,32 @@
             naturalWidth: {String(naturalImgWidth)}
           </p>
           <div class="overflow-x-auto overflow-y-hidden">
-            <div style={`width: ${trackWidth}px;`}>
+            <div class="flex justify-center">
+              <div style={`width: ${trackWidth}px;`}>
 
-              <!-- SPECTROGRAM -->
-              <div class="border-t-4 border-b-4 border-black bg-white">
-                <img
-                  src={spectrogramUrl}
-                  alt="Spectrogram"
-                  class="block max-w-none"
-                  style={`width: ${trackWidth}px; height: 450px;`}
-                  on:load={(e) => {
-                    const img = e.currentTarget as HTMLImageElement;
-                    naturalImgWidth = img.naturalWidth;
-                    console.log("naturalImgWidth =", naturalImgWidth);
-                  }}
-                />
+                <!-- SPECTROGRAM -->
+                <div class="border-t-4 border-b-4 border-black bg-white">
+                  <img
+                    src={spectrogramUrl}
+                    alt="Spectrogram"
+                    class="block max-w-none"
+                    style={`width: ${trackWidth}px; height: 450px;`}
+                  />
+                </div>
+
+                <!-- X AXIS -->
+                <div class="relative h-8 mt-1 border-t border-gray-300">
+                  {#each timeTicks as t}
+                    <div
+                      class="absolute text-xs text-gray-700 -translate-x-1/2 top-1 whitespace-nowrap"
+                      style={`left: ${(t / durationSec) * trackWidth}px;`}
+                    >
+                      {formatTime(t)}
+                    </div>
+                  {/each}
+                </div>
+
               </div>
-
-              <!-- X AXIS -->
-              <div class="relative h-8 mt-1 border-t border-gray-300">
-                {#each timeTicks as t}
-                  <div
-                    class="absolute text-xs text-gray-700 -translate-x-1/2 top-1 whitespace-nowrap"
-                    style={`left: ${(t / durationSec) * trackWidth}px;`}
-                  >
-                    {formatTime(t)}
-                  </div>
-                {/each}
-              </div>
-
             </div>
           </div>
         </div>
