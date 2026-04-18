@@ -13,8 +13,8 @@
   $: timeTicks = niceTimeTicks(durationSec);
   $: freqTicks = niceFreqTicks(minFreq, maxFreq);
 
-  export let durationSec: number = 60;   // TEMP: replace later with real value
-  export let sampleRate: number = 22050; // TEMP: replace later
+  let durationSec: number = 60;   // TEMP: replace later with real value
+  let sampleRate: number = 22050; // TEMP: replace later
 
   const nFft = 2048;
   const freqBinStart = 120;
@@ -24,8 +24,14 @@
   const maxFreq = (freqBinEnd * sampleRate) / nFft;
 
   let pixelsPerSecond = 40; // default zoom
-  $: trackWidth = Math.max(durationSec * pixelsPerSecond, 800);
 
+
+  const PX_PER_SEC = 30;
+  const MIN_TRACK_WIDTH = 1000;
+
+  $: trackWidth = durationSec
+    ? Math.max(durationSec * PX_PER_SEC, MIN_TRACK_WIDTH)
+    : MIN_TRACK_WIDTH;
 
   function formatTime(sec: number): string {
     const m = Math.floor(sec / 60);
@@ -134,7 +140,7 @@
 </script>
 
 <main
-  class="p-8 font-sans flex flex-col items-center min-h-screen bg-no-repeat bg-center bg-cover"
+  class="p-8 pt-2 font-sans flex flex-col items-center min-h-screen bg-no-repeat bg-center bg-cover"
   style="background-image: url('{backWhite}');"
 >
   <div class="grid grid-cols-1 md:grid-cols-[minmax(50px,auto)_1fr_minmax(50px,auto)] items-start gap-4 max-w-[1000px] mx-auto">
@@ -155,9 +161,29 @@
         <input
           type="file"
           accept=".wav"
-          on:change={(e) => {
+          on:change={async (e) => {
             const input = e.currentTarget as HTMLInputElement;
             file = input.files?.[0] ?? null;
+
+            if (!file) return;
+
+            // Create temporary audio element
+            const audio = document.createElement("audio");
+            const objectUrl = URL.createObjectURL(file);
+
+            audio.src = objectUrl;
+
+            // Wait for metadata (this is the key part)
+            await new Promise<void>((resolve, reject) => {
+              audio.addEventListener("loadedmetadata", () => resolve(), { once: true });
+              audio.addEventListener("error", () => reject(new Error("Failed to read metadata")), { once: true });
+            });
+
+            // Set duration
+            durationSec = audio.duration;
+            console.log("Duration:", durationSec);
+            // Clean up
+            URL.revokeObjectURL(objectUrl);
           }}
         />
         
