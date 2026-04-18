@@ -23,14 +23,14 @@
   const minFreq = (freqBinStart * sampleRate) / nFft;
   const maxFreq = (freqBinEnd * sampleRate) / nFft;
 
-  let pixelsPerSecond = 40; // default zoom
+  const PX_PER_SEC = 40;
+  const MIN_TRACK_WIDTH = 800;
 
+  $: safeDurationSec =
+    Number.isFinite(durationSec) && durationSec > 0 ? durationSec : null;
 
-  const PX_PER_SEC = 30;
-  const MIN_TRACK_WIDTH = 1000;
-
-  $: trackWidth = durationSec
-    ? Math.max(durationSec * PX_PER_SEC, MIN_TRACK_WIDTH)
+  $: trackWidth = safeDurationSec
+    ? Math.max(safeDurationSec * PX_PER_SEC, MIN_TRACK_WIDTH)
     : MIN_TRACK_WIDTH;
 
   function formatTime(sec: number): string {
@@ -136,6 +136,8 @@
     }
   }
 
+
+  let naturalImgWidth = 0;
 
 </script>
 
@@ -244,6 +246,11 @@
 
         <!-- MAIN AREA -->
         <div class="flex-1 min-w-0">
+          <p class="text-xs text-gray-600 mb-2">
+            durationSec: {String(durationSec)} |
+            trackWidth: {String(trackWidth)} |
+            naturalWidth: {String(naturalImgWidth)}
+          </p>
           <div class="overflow-x-auto overflow-y-hidden">
             <div style={`width: ${trackWidth}px;`}>
 
@@ -254,6 +261,11 @@
                   alt="Spectrogram"
                   class="block max-w-none"
                   style={`width: ${trackWidth}px; height: 450px;`}
+                  on:load={(e) => {
+                    const img = e.currentTarget as HTMLImageElement;
+                    naturalImgWidth = img.naturalWidth;
+                    console.log("naturalImgWidth =", naturalImgWidth);
+                  }}
                 />
               </div>
 
