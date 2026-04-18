@@ -236,12 +236,14 @@
     
   </div>
   {#if spectrogramUrl}
-    <div class="my-4 py-4 w-full">
-      <h2 class="text-lg font-bold mb-2">
-        {file ? file.name : "Spectrogram"}
-      </h2>
+    <div class="w-full py-2">
+  <h2 class="text-lg font-bold mb-2 text-center">
+    {file ? file.name : "Spectrogram"}
+  </h2>
 
-      <div class="flex m-2 items-stretch w-full">
+  <div class="w-full overflow-x-auto overflow-y-hidden">
+    <div class="min-w-full w-max flex justify-center">
+      <div class="flex items-stretch">
 
         <!-- Y AXIS -->
         <div class="relative w-14 shrink-0 border-r border-gray-300">
@@ -255,44 +257,45 @@
           {/each}
         </div>
 
-        <!-- MAIN AREA -->
-        <div class="flex-1 min-w-0">
+        <!-- SPECTROGRAM + X AXIS -->
+        <div style={`width: ${trackWidth}px;`}>
           <p class="text-xs text-gray-600 mb-2">
             durationSec: {String(durationSec)} |
             trackWidth: {String(trackWidth)} |
             naturalWidth: {String(naturalImgWidth)}
           </p>
-          <div class="overflow-x-auto overflow-y-hidden">
-            <div class="flex justify-center">
-              <div style={`width: ${trackWidth}px;`}>
 
-                <!-- SPECTROGRAM -->
-                <div class="border-t-4 border-b-4 border-black bg-white">
-                  <img
-                    src={spectrogramUrl}
-                    alt="Spectrogram"
-                    class="block max-w-none"
-                    style={`width: ${trackWidth}px; height: 450px;`}
-                  />
-                </div>
+          <!-- SPECTROGRAM -->
+          <div class="border-t-4 border-b-4 border-black bg-white">
+            <img
+              src={spectrogramUrl}
+              alt="Spectrogram"
+              class="block max-w-none"
+              style={`width: ${trackWidth}px; height: 450px;`}
+              on:load={(e) => {
+                const img = e.currentTarget as HTMLImageElement;
+                naturalImgWidth = img.naturalWidth;
+                console.log("naturalImgWidth =", naturalImgWidth);
+              }}
+            />
+          </div>
 
-                <!-- X AXIS -->
-                <div class="relative h-8 mt-1 border-t border-gray-300">
-                  {#each timeTicks as t}
-                    <div
-                      class="absolute text-xs text-gray-700 -translate-x-1/2 top-1 whitespace-nowrap"
-                      style={`left: ${(t / durationSec) * trackWidth}px;`}
-                    >
-                      {formatTime(t)}
-                    </div>
-                  {/each}
-                </div>
-
+          <!-- X AXIS -->
+          <div class="relative h-8 mt-1 border-t border-gray-300">
+            {#each timeTicks as t}
+              <div
+                class="absolute text-xs text-gray-700 -translate-x-1/2 top-1 whitespace-nowrap"
+                style={`left: ${safeDurationSec ? (t / safeDurationSec) * trackWidth : 0}px;`}
+              >
+                {formatTime(t)}
               </div>
-            </div>
+            {/each}
           </div>
         </div>
+
       </div>
     </div>
-    {/if}
+  </div>
+</div>
+  {/if}
 </main>
