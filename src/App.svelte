@@ -158,7 +158,7 @@
 
   function getDetectionBox(d: Detection) {
     const startTime = d.time;
-    const endTime = Math.min(d.time + .7, safeDurationSec ?? d.time + .7);
+    const endTime = Math.min(d.time + .6, safeDurationSec ?? d.time + .6);
 
     const left = ((startTime / (safeDurationSec ?? 1)) * trackWidth);
     const right = ((endTime / (safeDurationSec ?? 1)) * trackWidth);
@@ -173,6 +173,77 @@
 
     return { left, width, top, height };
   }
+
+  function stripExtension(filename: string): string {
+  return filename.replace(/\.[^/.]+$/, "");
+}
+
+function timestampForFilename(): string {
+  const now = new Date();
+
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const dd = String(now.getDate()).padStart(2, "0");
+  const yyyy = String(now.getFullYear());
+  const hh = String(now.getHours()).padStart(2, "0");
+  const min = String(now.getMinutes()).padStart(2, "0");
+  const ss = String(now.getSeconds()).padStart(2, "0");
+
+  return `${mm}-${dd}-${yyyy}-${hh}-${min}-${ss}`;
+}
+
+function buildRavenSelectionTableText(detections: Detection[]): string {
+  const headers = [
+    "Selection",
+    "View",
+    "Channel",
+    "Begin Time (s)",
+    "End Time (s)",
+    "Low Freq (Hz)",
+    "High Freq (Hz)"
+  ];
+
+  const rows = detections.map((d, i) => {
+    const midFreq = (d.low_freq_hz + d.high_freq_hz) / 2;
+    const beginTime = d.time;
+    const endTime = d.time + 0.4;
+    const lowFreq = midFreq - 400;
+    const highFreq = midFreq + 400;
+
+    return [
+      String(i + 1),
+      "Spectrogram 1",
+      "1",
+      String(beginTime),
+      String(endTime),
+      String(lowFreq),
+      String(highFreq)
+    ].join("\t");
+  });
+
+  return [headers.join("\t"), ...rows].join("\n");
+}
+
+function downloadRavenSelectionTable() {
+  if (!file || detections.length === 0) return;
+
+  const waveStart = 0;
+  const waveEnd = safeDurationSec ?? 0;
+  const timestamp = timestampForFilename();
+  const baseName = stripExtension(file.name);
+
+  const ravenText = buildRavenSelectionTableText(detections);
+  const blob = new Blob([ravenText], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `raven_${waveStart}-${waveEnd}_${timestamp}_${baseName}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+
+  URL.revokeObjectURL(url);
+}
 
 </script>
 
@@ -249,7 +320,15 @@
               {/each}
             </ul>
           </div>
+          <button
+            on:click={downloadRavenSelectionTable}
+            class="bg-green-900 hover:bg-green-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50"
+            disabled={loading || detections.length === 0 || !file}
+          >
+            Download Raven Selection Table
+          </button>
         {/if}
+        
       </div>
 
 
@@ -286,11 +365,6 @@
 
         <!-- SPECTROGRAM + X AXIS -->
         <div style={`width: ${trackWidth}px;`}>
-          <p class="text-xs text-gray-600 mb-2">
-            durationSec: {String(durationSec)} |
-            trackWidth: {String(trackWidth)} |
-            naturalWidth: {String(naturalImgWidth)}
-          </p>
 
           <!-- SPECTROGRAM -->
           <div
@@ -314,7 +388,7 @@
               {#each detections as d}
                 {@const box = getDetectionBox(d)}
                 <div
-                  class="absolute border-2 border-blue-500 bg-blue-500/10 box-border"
+                  class="absolute border-2 border-orange-600 bg-orange-500/20 box-border"
                   style={`
                     left: ${box.left}px;
                     top: ${box.top}px;
