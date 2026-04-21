@@ -9,7 +9,13 @@
   let spectrogramUrl: string | null = null;
   let loading = false;
   let modelStatus = '';
-  let detections: number[] = [];
+
+  type Detection = {
+    time: number;
+    low_freq_hz: number;
+    high_freq_hz: number;
+  };
+  let detections: Detection[] = [];
   $: timeTicks = niceTimeTicks(safeDurationSec ?? 0, trackWidth);
   $: freqTicks = niceFreqTicks(minFreq, maxFreq);
 
@@ -35,8 +41,8 @@
 
   function formatTime(sec: number): string {
     const m = Math.floor(sec / 60);
-    const s = Math.floor(sec % 60);
-    return `${m}:${String(s).padStart(2, "0")}`;
+    const s = sec % 60;
+    return `${m}:${s.toFixed(2).padStart(5, "0")}`;
   }
 
   function niceTimeTicks(duration: number, width: number): number[] {
@@ -150,6 +156,24 @@
 
   let naturalImgWidth = 0;
 
+  function getDetectionBox(d: Detection) {
+    const startTime = d.time;
+    const endTime = Math.min(d.time + .7, safeDurationSec ?? d.time + .7);
+
+    const left = ((startTime / (safeDurationSec ?? 1)) * trackWidth);
+    const right = ((endTime / (safeDurationSec ?? 1)) * trackWidth);
+    const width = Math.max(0, right - left);
+
+    const clampedLow = Math.max(minFreq, Math.min(maxFreq, d.low_freq_hz));
+    const clampedHigh = Math.max(minFreq, Math.min(maxFreq, d.high_freq_hz));
+
+    const top = ((maxFreq - clampedHigh) / (maxFreq - minFreq)) * 450;
+    const bottom = ((maxFreq - clampedLow) / (maxFreq - minFreq)) * 450;
+    const height = Math.max(0, bottom - top);
+
+    return { left, width, top, height };
+  }
+
 </script>
 
 <main
@@ -217,8 +241,11 @@
           <div class="mt-4 w-full max-w-xl text-left">
             <h3 class="font-bold mb-2">Detections ({detections.length})</h3>
             <ul class="text-sm max-h-48 overflow-y-auto border p-3 rounded bg-white/70">
-              {#each detections as detection}
-                <li>{detection}</li>
+              {#each detections as d}
+                <li>
+                  {formatTime(d.time)} 
+                  ({Math.round(d.low_freq_hz)}–{Math.round(d.high_freq_hz)} Hz)
+                </li>
               {/each}
             </ul>
           </div>
@@ -266,11 +293,14 @@
           </p>
 
           <!-- SPECTROGRAM -->
-          <div class="border-t-4 border-b-4 border-black bg-white">
+          <div
+            class="relative border-t-4 border-b-4 border-black bg-white"
+            style={`width: ${trackWidth}px; height: 450px;`}
+          >
             <img
               src={spectrogramUrl}
               alt="Spectrogram"
-              class="block max-w-none"
+              class="block max-w-none absolute inset-0"
               style={`width: ${trackWidth}px; height: 450px;`}
               on:load={(e) => {
                 const img = e.currentTarget as HTMLImageElement;
@@ -278,6 +308,22 @@
                 console.log("naturalImgWidth =", naturalImgWidth);
               }}
             />
+
+            <!-- DETECTION OVERLAY -->
+            <div class="absolute inset-0 pointer-events-none">
+              {#each detections as d}
+                {@const box = getDetectionBox(d)}
+                <div
+                  class="absolute border-2 border-blue-500 bg-blue-500/10 box-border"
+                  style={`
+                    left: ${box.left}px;
+                    top: ${box.top}px;
+                    width: ${box.width}px;
+                    height: ${box.height}px;
+                  `}
+                ></div>
+              {/each}
+            </div>
           </div>
 
           <!-- X AXIS -->
