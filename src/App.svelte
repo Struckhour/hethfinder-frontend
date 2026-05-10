@@ -54,7 +54,7 @@
 
   onMount(() => {
     const savedJobId = localStorage.getItem("hethfinder_job_id");
-
+    savedFileName = localStorage.getItem("hethfinder_file_name");
     const savedDuration = localStorage.getItem(
       "hethfinder_duration_sec"
     );
@@ -70,7 +70,11 @@
   });
 
   const API_BASE = import.meta.env.VITE_API_BASE_URL;
+  const MAX_UPLOAD_SIZE_MB = 200;
+  const MAX_UPLOAD_SIZE_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024;
   let file: File | null = null;
+  let savedFileName: string | null = null;
+  let uploadError = "";
   let spectrogramUrl: string | null = null;
   let loading = false;
   let modelStatus = '';
@@ -154,13 +158,22 @@
         body: formData
       });
 
-      if (!res.ok) throw new Error(`Server error: ${res.status}`);
+      const contentType = res.headers.get("content-type") ?? "";
+
+      if (contentType.includes("application/json")) {
+        const errorJson = await res.json();
+        throw new Error(errorJson.message || "Failed to generate spectrogram.");
+      }
+
+      if (!res.ok) {
+        throw new Error(`Server error: ${res.status}`);
+      }
 
       const blob = await res.blob();
       spectrogramUrl = URL.createObjectURL(blob);
     } catch (err) {
       console.error(err);
-      alert("Failed to generate spectrogram.");
+      alert(err instanceof Error ? err.message : "Failed to generate spectrogram.");
     } finally {
       loading = false;
     }
@@ -170,7 +183,7 @@
     if (!file) return;
 
     loading = true;
-    modelStatus = 'Uploading file...';
+    modelStatus = "Uploading file...";
     detections = [];
 
     const formData = new FormData();
@@ -182,15 +195,24 @@
         body: formData
       });
 
-      if (!res.ok) throw new Error(`Server error: ${res.status}`);
+      const resultJson = await res.json();
 
-      const { job_id } = await res.json();
+      if (!res.ok || resultJson.error) {
+        throw new Error(resultJson.message || `Server error: ${res.status}`);
+      }
+
+      if (!resultJson.job_id) {
+        throw new Error("Prediction did not return a job id.");
+      }
+
+      const job_id = resultJson.job_id;
+
       localStorage.setItem("hethfinder_job_id", job_id);
       await resumeJob(job_id);
     } catch (err) {
       console.error(err);
-      modelStatus = 'Prediction failed.';
-      alert("Prediction failed.");
+      modelStatus = "Prediction failed.";
+      alert(err instanceof Error ? err.message : "Prediction failed.");
     } finally {
       loading = false;
     }
@@ -267,12 +289,12 @@ function buildRavenSelectionTableText(detections: Detection[]): string {
 }
 
 function downloadRavenSelectionTable() {
-  if (!file || detections.length === 0) return;
+  if (detections.length === 0) return;
 
   const waveStart = 0;
   const waveEnd = safeDurationSec ?? 0;
   const timestamp = timestampForFilename();
-  const baseName = stripExtension(file.name);
+  const baseName = stripExtension(savedFileName ?? file?.name ?? "hethfinder");
 
   const ravenText = buildRavenSelectionTableText(detections);
   const blob = new Blob([ravenText], { type: "text/plain;charset=utf-8" });
@@ -315,9 +337,22 @@ function downloadRavenSelectionTable() {
           on:change={async (e) => {
             const input = e.currentTarget as HTMLInputElement;
             file = input.files?.[0] ?? null;
+            uploadError = "";
 
+            if (file && file.size > MAX_UPLOAD_SIZE_BYTES) {
+              uploadError = `This WAV file is too large. Maximum size is ${MAX_UPLOAD_SIZE_MB} MB.`;
+              file = null;
+              spectrogramUrl = null;
+              detections = [];
+              modelStatus = "";
+              input.value = "";
+              return;
+            }
             if (!file) return;
-
+            if (file) {
+              savedFileName = file.name;
+              localStorage.setItem("hethfinder_file_name", file.name);
+            }
             // Create temporary audio element
             const audio = document.createElement("audio");
             const objectUrl = URL.createObjectURL(file);
@@ -341,6 +376,11 @@ function downloadRavenSelectionTable() {
             URL.revokeObjectURL(objectUrl);
           }}
         />
+        {#if uploadError}
+          <p class="text-sm text-red-700 font-semibold">
+            {uploadError}
+          </p>
+        {/if}
         
         <button
           on:click="{uploadFile}"
@@ -370,7 +410,7 @@ function downloadRavenSelectionTable() {
           <button
             on:click={downloadRavenSelectionTable}
             class="bg-green-900 hover:bg-green-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50"
-            disabled={loading || detections.length === 0 || !file}
+            disabled={loading || detections.length === 0}
           >
             Download Raven Selection Table
           </button>
