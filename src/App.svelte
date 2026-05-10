@@ -42,7 +42,7 @@
       modelStatus = `Done. Found ${detections.length} detections.`;
 
       // cleanup after success
-      localStorage.removeItem("hethfinder_job_id");
+      // localStorage.removeItem("hethfinder_job_id");
 
     } catch (err) {
       console.error(err);
@@ -54,7 +54,17 @@
 
   onMount(() => {
     const savedJobId = localStorage.getItem("hethfinder_job_id");
+
+    const savedDuration = localStorage.getItem(
+      "hethfinder_duration_sec"
+    );
+
+    if (savedDuration) {
+      durationSec = Number(savedDuration);
+    }
+
     if (savedJobId) {
+      spectrogramUrl = `${API_BASE}/spectrogram/${savedJobId}`;
       resumeJob(savedJobId);
     }
   });
@@ -322,6 +332,10 @@ function downloadRavenSelectionTable() {
 
             // Set duration
             durationSec = audio.duration;
+            localStorage.setItem(
+              "hethfinder_duration_sec",
+              String(durationSec)
+            );
             console.log("Duration:", durationSec);
             // Clean up
             URL.revokeObjectURL(objectUrl);
