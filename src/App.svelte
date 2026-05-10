@@ -3,8 +3,63 @@
   import leftBorder from './assets/images/left-side-bg.png';
   import rightBorder from './assets/images/right-side-bg.png';
   import backWhite from './assets/images/background-white.png';
+  import { onMount } from 'svelte';
 
+  async function resumeJob(job_id: string) {
+    loading = true;
+    modelStatus = "Resuming job...";
 
+    try {
+      let status = "queued";
+
+      while (status !== "done") {
+        await new Promise((r) => setTimeout(r, 2000));
+
+        const statusRes = await fetch(`${API_BASE}/status/${job_id}`);
+        if (!statusRes.ok) throw new Error(`Status error: ${statusRes.status}`);
+
+        const statusJson = await statusRes.json();
+        status = statusJson.status;
+        modelStatus = `Model status: ${status}`;
+
+        if (status === "error") {
+          throw new Error(statusJson.error || "Job failed");
+        }
+
+        if (status === "not_found") {
+          localStorage.removeItem("hethfinder_job_id");
+          modelStatus = "Job not found.";
+          loading = false;
+          return;
+        }
+      }
+
+      const resultRes = await fetch(`${API_BASE}/result/${job_id}`);
+      if (!resultRes.ok) throw new Error(`Result error: ${resultRes.status}`);
+
+      const resultJson = await resultRes.json();
+      detections = resultJson.detections ?? [];
+      modelStatus = `Done. Found ${detections.length} detections.`;
+
+      // cleanup after success
+      localStorage.removeItem("hethfinder_job_id");
+
+    } catch (err) {
+      console.error(err);
+      modelStatus = "Prediction failed.";
+    } finally {
+      loading = false;
+    }
+  }
+
+  onMount(() => {
+    const savedJobId = localStorage.getItem("hethfinder_job_id");
+    if (savedJobId) {
+      resumeJob(savedJobId);
+    }
+  });
+
+  const API_BASE = import.meta.env.VITE_API_BASE_URL;
   let file: File | null = null;
   let spectrogramUrl: string | null = null;
   let loading = false;
@@ -84,7 +139,7 @@
     formData.append("file", file);
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/spectrogram", {
+      const res = await fetch(`${API_BASE}/spectrogram`, {
         method: "POST",
         body: formData
       });
@@ -112,7 +167,7 @@
     formData.append("file", file);
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/predict", {
+      const res = await fetch(`${API_BASE}/predict`, {
         method: "POST",
         body: formData
       });
@@ -120,30 +175,8 @@
       if (!res.ok) throw new Error(`Server error: ${res.status}`);
 
       const { job_id } = await res.json();
-
-      let status = 'queued';
-
-      while (status !== 'done') {
-        await new Promise((r) => setTimeout(r, 2000));
-
-        const statusRes = await fetch(`http://127.0.0.1:8000/status/${job_id}`);
-        if (!statusRes.ok) throw new Error(`Status error: ${statusRes.status}`);
-
-        const statusJson = await statusRes.json();
-        status = statusJson.status;
-        modelStatus = `Model status: ${status}`;
-
-        if (status === 'error') {
-          throw new Error(statusJson.error || 'Job failed');
-        }
-      }
-
-      const resultRes = await fetch(`http://127.0.0.1:8000/result/${job_id}`);
-      if (!resultRes.ok) throw new Error(`Result error: ${resultRes.status}`);
-
-      const resultJson = await resultRes.json();
-      detections = resultJson.detections ?? [];
-      modelStatus = `Done. Found ${detections.length} detections.`;
+      localStorage.setItem("hethfinder_job_id", job_id);
+      await resumeJob(job_id);
     } catch (err) {
       console.error(err);
       modelStatus = 'Prediction failed.';
@@ -262,7 +295,7 @@ function downloadRavenSelectionTable() {
     <div class="text-center">
       <div class="my-4">
         <h1 class="text-6xl font-bold mb-1 tracking-widest" style="font-family: 'Alumni Sans Pinstripe', sans-serif;">HethFinder</h1>
-        <h4>A tool for analyzing Hermit Thrush recordings</h4>
+        <h4>A tool for annotating Hermit Thrush recordings</h4>
       </div>
 
       <div class="w-full flex flex-col items-center space-y-4">
